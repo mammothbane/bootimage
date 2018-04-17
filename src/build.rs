@@ -263,7 +263,7 @@ fn download_bootloader(out_dir: &Path, config: &Config) -> Result<CrateMetadata,
 }
 
 fn build_bootloader(out_dir: &Path, config: &Config) -> Result<Box<[u8]>, Error> {
-    use std::io::Read;
+    use std::io::{Read, Write};
 
     let bootloader_metadata = download_bootloader(out_dir, config)?;
     let bootloader_dir = Path::new(&bootloader_metadata.manifest_path)
@@ -309,6 +309,8 @@ fn build_bootloader(out_dir: &Path, config: &Config) -> Result<Box<[u8]>, Error>
     })?;
     bootloader.read_to_end(&mut bootloader_elf_bytes)?;
 
+    File::create(outdir(config).join("bootloader.elf"))?.write_all(&bootloader_elf_bytes)?;
+
     // copy bootloader section of ELF file to bootloader_path
     let elf_file = xmas_elf::ElfFile::new(&bootloader_elf_bytes).unwrap();
     xmas_elf::header::sanity_check(&elf_file).unwrap();
@@ -317,6 +319,13 @@ fn build_bootloader(out_dir: &Path, config: &Config) -> Result<Box<[u8]>, Error>
         .expect("bootloader must have a .bootloader section");
 
     Ok(Vec::from(bootloader_section.raw_data(&elf_file)).into_boxed_slice())
+}
+
+#[inline]
+fn outdir(config: &Config) -> PathBuf {
+    let mut out = config.output.clone().canonicalize().expect("unable to get out directory");
+    let _ = out.pop();
+    out
 }
 
 fn create_disk_image(
@@ -329,11 +338,7 @@ fn create_disk_image(
 
     println!("Creating disk image at {}", config.output.display());
 
-    let mut outdir = config.output.clone().as_path().canonicalize()?;
-    let _ = outdir.pop();
-
-    File::create(outdir.join("bootloader.elf"))?.write_all(&bootloader_data)?;
-    let _ = ::std::io::copy(&mut kernel, &mut File::create(outdir.join("kernel.elf"))?)?;
+    let _ = ::std::io::copy(&mut kernel, &mut File::create(outdir(config).join("kernel.elf"))?)?;
 
     let mut output = File::create(&config.output)?;
     output.write_all(&bootloader_data)?;
