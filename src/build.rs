@@ -328,6 +328,13 @@ fn create_disk_image(
     use std::io::{Read, Write};
 
     println!("Creating disk image at {}", config.output.display());
+
+    let mut outdir = config.output.clone().as_path().canonicalize()?;
+    let _ = outdir.pop();
+
+    File::create(outdir.join("bootloader.elf"))?.write_all(&bootloader_data)?;
+    let _ = ::std::io::copy(&mut kernel, &mut File::create(outdir.join("kernel.elf"))?)?;
+
     let mut output = File::create(&config.output)?;
     output.write_all(&bootloader_data)?;
     output.write_all(&kernel_info_block)?;
