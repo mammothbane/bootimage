@@ -334,11 +334,12 @@ fn create_disk_image(
     kernel_info_block: KernelInfoBlock,
     bootloader_data: &[u8],
 ) -> Result<(), Error> {
-    use std::io::{Read, Write};
+    use std::io::{Read, Write, Seek};
 
     println!("Creating disk image at {}", config.output.display());
 
     let _ = ::std::io::copy(&mut kernel, &mut File::create(outdir(config).join("kernel.elf"))?)?;
+    let _ = kernel.seek(::std::io::SeekFrom::Start(0))?;
 
     let mut output = File::create(&config.output)?;
     output.write_all(&bootloader_data)?;
