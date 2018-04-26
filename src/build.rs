@@ -320,7 +320,7 @@ fn build_bootloader(out_dir: &Path, config: &Config) -> Result<Box<[u8]>, Error>
 
 #[inline]
 fn outdir(config: &Config) -> PathBuf {
-    let mut out = config.output.clone().canonicalize().expect("unable to get out directory");
+    let mut out = config.output.clone();
     let _ = out.pop();
     out
 }
